@@ -25,45 +25,24 @@ def get_news(company: str):
 
     try:
         if company == "jeju":
-            # 제주일보 최신 전체 기사 목록 페이지 타겟팅
-            url = "http://www.jejunews.com/news/articleList.html?sc_section_code=S1N1&view_type=sm"
+            # 제주일보 메인 및 검색 페이지에서 안정적으로 기사 추출
+            url = "http://www.jejunews.com/"
             res = requests.get(url, headers=headers, timeout=5)
             res.encoding = 'utf-8'
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            # 제주일보 기사 리스트 구조(section 하위 기사 아이템)에서 정확히 추출
-            item_list = soup.select('.section-article-list .list-block, .default-list li, ul li')
-            
-            for item in item_list:
-                a_tag = item.find('a')
-                if not a_tag:
-                    continue
-                title = a_tag.get_text().strip()
-                link = a_tag.get('href', '')
+            for a in soup.find_all('a'):
+                title = a.get_text().strip()
+                link = a.get('href', '')
                 
-                # 날짜 정보가 있다면 추출 시도, 없으면 오늘 날짜
-                date_elem = item.select_text('.date') if hasattr(item, 'select_text') else None
-                art_time = today_date
-                
+                # articleView.html을 포함하고 제목이 너무 짧지 않은 최신 기사 수집
                 if title and len(title) > 8 and 'articleView.html' in link:
                     if link.startswith('/'):
                         link = "http://www.jejunews.com" + link
                     elif not link.startswith('http'):
                         link = "http://www.jejunews.com/news/" + link
                         
-                    articles.append({"title": title, "time": art_time, "link": link})
-            
-            # 만약 위 셀렉터로 안 잡히면 일반 a 태그 탐색 (단, 오래된 고정 메뉴 제외)
-            if not articles:
-                for a in soup.select('a'):
-                    title = a.get_text().strip()
-                    link = a.get('href', '')
-                    if title and len(title) > 10 and 'articleView.html' in link:
-                        if 'sc_sub_section_code' in link: # 기획/연도별 코너 제외
-                            continue
-                        if link.startswith('/'):
-                            link = "http://www.jejunews.com" + link
-                        articles.append({"title": title, "time": today_date, "link": link})
+                    articles.append({"title": title, "time": today_date, "link": link})
 
         elif company == "halla":
             url = "https://m.ihalla.com/"
@@ -71,7 +50,7 @@ def get_news(company: str):
             res.encoding = 'utf-8'
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            for a in soup.select('a'):
+            for a in soup.find_all('a'):
                 title = a.get_text().strip()
                 link = a.get('href', '')
                 if title and len(title) > 10 and 'article' in link:
@@ -87,7 +66,7 @@ def get_news(company: str):
             res.encoding = 'utf-8'
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            for a in soup.select('a'):
+            for a in soup.find_all('a'):
                 title = a.get_text().strip()
                 link = a.get('href', '')
                 if title and len(title) > 10 and ('news' in link or 'article' in link):
