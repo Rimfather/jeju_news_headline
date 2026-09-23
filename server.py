@@ -25,36 +25,35 @@ def get_news(company: str):
 
     try:
         if company == "jeju":
-            # 제주일보 메인 페이지로 변경하여 가장 최신 기사 수집
-            url = "http://www.jejunews.com/"
-            res = requests.get(url, headers=headers)
+            # 제주일보 실시간 주요뉴스 페이지 활용
+            url = "http://www.jejunews.com/news/todayNews.html"
+            res = requests.get(url, headers=headers, timeout=5)
             res.encoding = 'utf-8'
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            for a in soup.select('a'):
+            for a in soup.find_all('a'):
                 title = a.get_text().strip()
                 link = a.get('href', '')
-                # 기사 링크 패턴(articleView 또는 idxno)이 포함된 최신 기사만 선별
-                if title and len(title) > 10 and ('articleView.html' in link or 'idxno' in link):
-                    if link.startswith('http'):
-                        pass
-                    elif link.startswith('/'):
+                
+                # 의미 있는 길이의 기사 제목이며 리스트 페이지가 아닌 경우 우선 수집
+                if title and len(title) > 9 and 'article' in link and 'articleList' not in link:
+                    if link.startswith('/'):
                         link = "http://www.jejunews.com" + link
-                    else:
-                        link = "http://www.jejunews.com/" + link
+                    elif not link.startswith('http'):
+                        link = "http://www.jejunews.com/news/" + link
                         
                     articles.append({"title": title, "time": today_date, "link": link})
-                    
+
         elif company == "halla":
             url = "https://m.ihalla.com/"
-            res = requests.get(url, headers=headers)
+            res = requests.get(url, headers=headers, timeout=5)
             res.encoding = 'utf-8'
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            for a in soup.select('a'):
+            for a in soup.find_all('a'):
                 title = a.get_text().strip()
                 link = a.get('href', '')
-                if title and len(title) > 10 and 'article' in link:
+                if title and len(title) > 9 and 'article' in link:
                     if link.startswith('/'):
                         link = "https://m.ihalla.com" + link
                     elif not link.startswith('http'):
@@ -63,14 +62,14 @@ def get_news(company: str):
                     
         elif company == "jemin":
             url = "https://www.jemin.com/"
-            res = requests.get(url, headers=headers)
+            res = requests.get(url, headers=headers, timeout=5)
             res.encoding = 'utf-8'
             soup = BeautifulSoup(res.text, 'html.parser')
             
-            for a in soup.select('a'):
+            for a in soup.find_all('a'):
                 title = a.get_text().strip()
                 link = a.get('href', '')
-                if title and len(title) > 10 and ('news' in link or 'article' in link):
+                if title and len(title) > 9 and ('news' in link or 'article' in link):
                     if link.startswith('/'):
                         link = "https://www.jemin.com" + link
                     elif not link.startswith('http'):
@@ -90,9 +89,10 @@ def get_news(company: str):
         if len(unique_articles) >= 10:
             break
 
+    # 기사가 수집되지 않았을 때의 대체 데이터
     if not unique_articles:
         unique_articles = [
-            {"title": "기사를 불러오는 중 문제가 발생했습니다. 잠시 후 새로고침 해주세요.", "time": today_date, "link": "#"}
+            {"title": f"[{company.upper}] 실시간 기사를 불러오는 중입니다. 잠시 후 새로고침 해주세요.", "time": today_date, "link": "#"}
         ]
 
     return {"articles": unique_articles}
